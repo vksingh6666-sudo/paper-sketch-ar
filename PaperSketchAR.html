@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Paper Sketch AR</title>
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:#000;font-family:Arial}
+#v{position:fixed;inset:0;width:100%;height:100%;object-fit:cover}
+#o{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);max-width:90vw;max-height:80vh;touch-action:none}
+#bar{position:fixed;bottom:0;left:0;right:0;padding:10px;background:#000c;color:#fff}
+button,label{padding:9px;margin:3px;border:0;border-radius:8px;background:#fff;font-weight:bold}
+input{width:90px}
+#msg{position:fixed;top:8px;left:8px;right:8px;text-align:center;color:#fff;background:#0009;padding:7px;border-radius:8px}
+#pick{display:none}
+</style></head><body>
+<video id="v" autoplay playsinline muted></video><img id="o" hidden>
+<div id="msg">📷 Start Camera → 🖼️ Choose Photo → ✏️ Sketch Overlay</div>
+<div id="bar">
+<button id="start">📷 Camera</button>
+<label>🖼️ Photo<input id="pick" type="file" accept="image/*"></label>
+<button id="lock">🔓 Lock</button><button id="reset">↺ Reset</button><br>
+Opacity <input id="op" type="range" min="0" max="100" value="65">
+Dark <input id="dk" type="range" min="50" max="220" value="150">
+Zoom <input id="zm" type="range" min="30" max="220" value="100">
+</div>
+<script>
+const v=document.getElementById('v'),o=document.getElementById('o'),pick=document.getElementById('pick');
+let stream,locked=false,s=1,x=0,y=0,drag=false,sx,sy,ox,oy;
+start.onclick=async()=>{try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});v.srcObject=stream;msg.textContent='LIVE CAMERA — paper पर reference sketch align करें'}catch(e){alert('Camera permission दें। HTTPS page जरूरी है।')}};
+pick.onchange=e=>{let f=e.target.files[0];if(!f)return;let im=new Image();im.onload=()=>{let c=document.createElement('canvas'),q=c.getContext('2d'),m=1200,z=Math.min(1,m/Math.max(im.width,im.height));c.width=im.width*z;c.height=im.height*z;q.drawImage(im,0,0,c.width,c.height);let d=q.getImageData(0,0,c.width,c.height),a=d.data,w=c.width,h=c.height,g=new Float32Array(w*h),i,p;for(i=0,p=0;i<a.length;i+=4,p++)g[p]=.299*a[i]+.587*a[i+1]+.114*a[i+2];let out=q.createImageData(w,h);for(let yy=1;yy<h-1;yy++)for(let xx=1;xx<w-1;xx++){p=yy*w+xx;let gx=-g[p-w-1]-2*g[p-1]-g[p+w-1]+g[p-w+1]+2*g[p+1]+g[p+w+1],gy=-g[p-w-1]-2*g[p-w]-g[p-w+1]+g[p+w-1]+2*g[p+w]+g[p+w+1],z2=Math.min(255,Math.hypot(gx,gy)),k=p*4;out.data[k]=out.data[k+1]=out.data[k+2]=255-z2;out.data[k+3]=255}q.putImageData(out,0,0);o.src=c.toDataURL();o.hidden=false;apply();if(!stream)start.click();msg.textContent='✏️ SKETCH OVERLAY LIVE — paper के साथ align करें'};im.src=URL.createObjectURL(f)};
+function apply(){o.style.opacity=op.value/100;o.style.filter='contrast('+dk.value+'%) brightness('+(260-dk.value)+ '%)';o.style.transform='translate(calc(-50% + '+x+'px),calc(-50% + '+y+'px)) scale('+s+')'}
+op.oninput=apply;dk.oninput=apply;zm.oninput=()=>{s=zm.value/100;apply()};
+o.onpointerdown=e=>{if(locked)return;drag=true;sx=e.clientX;sy=e.clientY;ox=x;oy=y;o.setPointerCapture(e.pointerId)};
+o.onpointermove=e=>{if(drag&&!locked){x=ox+e.clientX-sx;y=oy+e.clientY-sy;apply()}};o.onpointerup=()=>drag=false;
+lock.onclick=()=>{locked=!locked;lock.textContent=locked?'🔒 Locked':'🔓 Lock';msg.textContent=locked?'🔒 LOCKED — अब paper पर trace करें':'Overlay unlocked'};
+reset.onclick=()=>{x=y=0;s=1;zm.value=100;op.value=65;dk.value=150;apply()};
+</script></body></html>
