@@ -2,424 +2,1460 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport"
+content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+
 <title>Paper Sketch AR</title>
 
 <style>
 html,body{
-  margin:0;height:100%;overflow:hidden;background:#000;
-  font-family:Arial
+  margin:0;
+  height:100%;
+  overflow:hidden;
+  background:#000;
+  font-family:Arial,sans-serif;
 }
+
 #v{
-  position:fixed;inset:0;width:100%;height:100%;object-fit:cover
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
 }
+
 #o{
-  position:fixed;left:50%;top:45%;
+  position:fixed;
+  left:50%;
+  top:43%;
+  max-width:88vw;
+  max-height:62vh;
   transform:translate(-50%,-50%);
-  max-width:90vw;max-height:65vh;
-  touch-action:none
+  touch-action:none;
+  user-select:none;
 }
-#spiro{
-  position:fixed;left:50%;top:45%;
-  transform:translate(-50%,-50%);
-  width:70vw;height:50vh;
+
+#spiro,
+#spray{
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
   pointer-events:none;
 }
+
 #bar{
-  position:fixed;bottom:0;left:0;right:0;
-  max-height:38vh;overflow:auto;
-  padding:8px;background:#000c;color:#fff;
-  text-align:center
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  max-height:42vh;
+  overflow:auto;
+  padding:7px;
+  background:#000c;
+  color:#fff;
+  text-align:center;
+  box-sizing:border-box;
 }
+
+.row{
+  margin:4px 0;
+}
+
 button,label{
-  padding:8px;margin:2px;border:0;border-radius:8px;
-  background:#fff;font-weight:bold
+  display:inline-block;
+  padding:8px 9px;
+  margin:2px;
+  border:0;
+  border-radius:8px;
+  background:#fff;
+  color:#111;
+  font-weight:bold;
+  font-size:13px;
 }
-input{width:80px}
+
+button:active{
+  transform:scale(.96);
+}
+
+input[type="range"]{
+  width:85px;
+  vertical-align:middle;
+}
+
+input[type="text"]{
+  width:155px;
+  padding:9px;
+  border:0;
+  border-radius:8px;
+}
+
+select{
+  padding:7px;
+  border-radius:7px;
+}
+
+#pick{
+  display:none;
+}
+
 #msg{
-  position:fixed;top:8px;left:8px;right:8px;
-  text-align:center;color:#fff;background:#0009;
-  padding:7px;border-radius:8px
+  position:fixed;
+  top:7px;
+  left:7px;
+  right:7px;
+  padding:7px;
+  background:#000a;
+  color:#fff;
+  text-align:center;
+  border-radius:8px;
+  z-index:20;
+  font-size:13px;
 }
-#pick{display:none}
-.row{margin:3px 0}
+
+.panel{
+  border-top:1px solid #555;
+  margin-top:4px;
+  padding-top:4px;
+}
+
+.hidden{
+  display:none;
+}
 </style>
 </head>
 
 <body>
 
+<!-- CAMERA -->
 <video id="v" autoplay playsinline muted></video>
 
+<!-- PHOTO / SKETCH -->
 <img id="o" hidden>
 
+<!-- DRAWING LAYERS -->
 <canvas id="spiro"></canvas>
+<canvas id="spray"></canvas>
 
 <div id="msg">
-📷 Start Camera → 🖼️ Choose Photo → ✏️ Sketch Overlay
+📷 Camera → 🖼️ Photo → ✏️ Sketch → 📄 Trace
 </div>
 
 <div id="bar">
 
-<div class="row">
-<button id="start">📷 Camera</button>
-<label>🖼️ Photo
-<input id="pick" type="file" accept="image/*">
-</label>
-<button id="spiroBtn">⭕ Spirograph</button>
-<button id="lock">🔓 Lock</button>
-<button id="reset">↺ Reset</button>
+  <!-- MAIN BUTTONS -->
+  <div class="row">
+
+    <button id="start">
+      📷 Camera
+    </button>
+
+    <label>
+      🖼️ Photo
+      <input id="pick" type="file" accept="image/*">
+    </label>
+
+    <button id="originalBtn">
+      📷 Original
+    </button>
+
+    <button id="sketchBtn">
+      ✏️ Sketch
+    </button>
+
+    <button id="webSearchBtn">
+      🌐 Web Search
+    </button>
+
+  </div>
+
+  <!-- WEB SEARCH -->
+  <div class="row">
+
+    <input
+      id="webQuery"
+      type="text"
+      placeholder="🔎 Photo खोजें..."
+    >
+
+    <button id="searchBtn">
+      🔎 Search
+    </button>
+
+  </div>
+
+  <!-- PHOTO CONTROLS -->
+  <div class="row">
+
+    Opacity
+    <input
+      id="op"
+      type="range"
+      min="0"
+      max="100"
+      value="65"
+    >
+
+    Dark
+    <input
+      id="dk"
+      type="range"
+      min="50"
+      max="220"
+      value="150"
+    >
+
+    Zoom
+    <input
+      id="zm"
+      type="range"
+      min="30"
+      max="250"
+      value="100"
+    >
+
+  </div>
+
+  <!-- TOOLS -->
+  <div class="row">
+
+    <button id="spiroBtn">
+      ⭕ Spirograph
+    </button>
+
+    <button id="sprayBtn">
+      🎨 Colour Spray
+    </button>
+
+    <button id="lock">
+      🔓 Lock
+    </button>
+
+    <button id="reset">
+      ↺ Reset
+    </button>
+
+  </div>
+
+
+  <!-- SPIROGRAPH PANEL -->
+  <div id="spiroControls"
+       class="panel hidden">
+
+    <b>⭕ Spirograph</b>
+
+    <div class="row">
+
+      Pattern
+
+      <select id="pattern">
+
+        <option value="1">
+          Flower
+        </option>
+
+        <option value="2">
+          Star
+        </option>
+
+        <option value="3">
+          Circle
+        </option>
+
+        <option value="4">
+          Mandala
+        </option>
+
+      </select>
+
+      Size
+
+      <input
+        id="spSize"
+        type="range"
+        min="30"
+        max="300"
+        value="120"
+      >
+
+    </div>
+
+    <div class="row">
+
+      Brush
+
+      <input
+        id="brush"
+        type="range"
+        min="1"
+        max="10"
+        value="2"
+      >
+
+      Speed
+
+      <input
+        id="speed"
+        type="range"
+        min="1"
+        max="20"
+        value="5"
+      >
+
+      Colour
+
+      <input
+        id="colour"
+        type="color"
+        value="#ff0000"
+      >
+
+    </div>
+
+  </div>
+
+
+  <!-- COLOUR SPRAY PANEL -->
+  <div id="sprayControls"
+       class="panel hidden">
+
+    <b>🎨 Colour Spray</b>
+
+    <div class="row">
+
+      Colour
+
+      <input
+        id="sprayColour"
+        type="color"
+        value="#ff0000"
+      >
+
+      Size
+
+      <input
+        id="spraySize"
+        type="range"
+        min="10"
+        max="180"
+        value="70"
+      >
+
+    </div>
+
+    <div class="row">
+
+      Density
+
+      <input
+        id="sprayDensity"
+        type="range"
+        min="5"
+        max="100"
+        value="35"
+      >
+
+      <button id="clearSpray">
+        🧹 Clear Spray
+      </button>
+
+    </div>
+
+    <div class="row">
+      <small>
+        Paper पर tap/click करके colour spray करें
+      </small>
+    </div>
+
+  </div>
+
 </div>
 
-<div class="row">
-Opacity
-<input id="op" type="range" min="0" max="100" value="65">
-
-Dark
-<input id="dk" type="range" min="50" max="220" value="150">
-
-Zoom
-<input id="zm" type="range" min="30" max="220" value="100">
-</div>
-
-<div id="spiroControls" hidden>
-
-<div class="row">
-<b>⭕ Spirograph</b>
-</div>
-
-<div class="row">
-Pattern
-<select id="pattern">
-<option value="1">Flower</option>
-<option value="2">Star</option>
-<option value="3">Circle</option>
-<option value="4">Mandala</option>
-</select>
-
-Size
-<input id="spSize" type="range" min="30" max="250" value="120">
-
-Speed
-<input id="speed" type="range" min="1" max="20" value="5">
-</div>
-
-<div class="row">
-Brush
-<input id="brush" type="range" min="1" max="8" value="2">
-
-Colour
-<input id="colour" type="color" value="#ff0000">
-</div>
-
-</div>
-</div>
 
 <script>
 
-const v=document.getElementById('v');
-const o=document.getElementById('o');
-const pick=document.getElementById('pick');
+/* ==================================
+   ELEMENTS
+================================== */
 
-const canvas=document.getElementById('spiro');
-const ctx=canvas.getContext('2d');
+const v =
+document.getElementById("v");
 
-let stream;
-let locked=false;
-let s=1,x=0,y=0,drag=false,sx,sy,ox,oy;
+const o =
+document.getElementById("o");
 
-let spiroOn=false;
-let angle=0;
+const pick =
+document.getElementById("pick");
+
+const msg =
+document.getElementById("msg");
+
+const canvas =
+document.getElementById("spiro");
+
+const ctx =
+canvas.getContext("2d");
+
+const sprayCanvas =
+document.getElementById("spray");
+
+const sprayCtx =
+sprayCanvas.getContext("2d");
+
+
+/* ==================================
+   VARIABLES
+================================== */
+
+let stream = null;
+
+let locked = false;
+
+let originalMode = false;
+
+let originalImage = "";
+
+let sketchImage = "";
+
+let s = 1;
+
+let x = 0;
+let y = 0;
+
+let drag = false;
+
+let sx = 0;
+let sy = 0;
+
+let ox = 0;
+let oy = 0;
+
+let spiroOn = false;
+
+let sprayOn = false;
+
+let angle = 0;
+
+
+/* ==================================
+   APPLY PHOTO
+================================== */
 
 function apply(){
 
-  o.style.opacity=op.value/100;
+  if(!o.src) return;
 
-  o.style.filter=
-    'contrast('+dk.value+'%) brightness('+
-    (260-dk.value)+'%)';
+  o.style.opacity =
+    Number(op.value)/100;
 
-  o.style.transform=
-    'translate(calc(-50% + '+x+'px),calc(-50% + '+y+'px)) scale('+s+')';
+  if(originalMode){
+
+    o.style.filter =
+      "none";
+
+  }else{
+
+    o.style.filter =
+      "contrast(" +
+      dk.value +
+      "%) brightness(" +
+      (260-Number(dk.value)) +
+      "%)";
+
+  }
+
+  o.style.transform =
+    "translate(calc(-50% + " +
+    x +
+    "px),calc(-50% + " +
+    y +
+    "px)) scale(" +
+    s +
+    ")";
+
 }
 
-start.onclick=async()=>{
+
+/* ==================================
+   CAMERA
+================================== */
+
+start.onclick =
+async function(){
 
   try{
 
-    stream=await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:{ideal:'environment'}},
+    if(!navigator.mediaDevices){
+
+      alert(
+        "Camera के लिए HTTPS page खोलें."
+      );
+
+      return;
+    }
+
+    stream =
+    await navigator.mediaDevices.getUserMedia({
+
+      video:{
+        facingMode:{
+          ideal:"environment"
+        }
+      },
+
       audio:false
+
     });
 
-    v.srcObject=stream;
+    v.srcObject =
+      stream;
 
-    msg.textContent=
-      'LIVE CAMERA — paper पर reference sketch align करें';
+    msg.textContent =
+      "📷 LIVE CAMERA — paper align करें";
 
   }catch(e){
 
-    alert('Camera permission दें। HTTPS page जरूरी है।');
+    alert(
+      "Camera permission Allow करें.\n" +
+      "GitHub Pages का HTTPS page इस्तेमाल करें."
+    );
 
   }
+
 };
 
 
-pick.onchange=e=>{
+/* ==================================
+   PHOTO SELECT
+================================== */
 
-  let f=e.target.files[0];
+pick.onchange =
+function(e){
 
-  if(!f)return;
+  const file =
+    e.target.files[0];
 
-  let im=new Image();
+  if(!file) return;
 
-  im.onload=()=>{
+  const im =
+    new Image();
 
-    let c=document.createElement('canvas');
-    let q=c.getContext('2d');
+  im.onload =
+  function(){
 
-    let m=1200;
-    let z=Math.min(1,m/Math.max(im.width,im.height));
+    const c =
+      document.createElement("canvas");
 
-    c.width=im.width*z;
-    c.height=im.height*z;
+    const q =
+      c.getContext("2d");
 
-    q.drawImage(im,0,0,c.width,c.height);
+    const maxSize =
+      1400;
 
-    let d=q.getImageData(0,0,c.width,c.height);
-    let a=d.data;
+    const scale =
+      Math.min(
+        1,
+        maxSize /
+        Math.max(
+          im.width,
+          im.height
+        )
+      );
 
-    let w=c.width;
-    let h=c.height;
+    c.width =
+      Math.round(im.width*scale);
 
-    let g=new Float32Array(w*h);
+    c.height =
+      Math.round(im.height*scale);
 
-    let i,p;
+    q.drawImage(
+      im,
+      0,
+      0,
+      c.width,
+      c.height
+    );
 
-    for(i=0,p=0;i<a.length;i+=4,p++)
-      g[p]=.299*a[i]+.587*a[i+1]+.114*a[i+2];
 
-    let out=q.createImageData(w,h);
+    /* ORIGINAL */
 
-    for(let yy=1;yy<h-1;yy++)
-    for(let xx=1;xx<w-1;xx++){
+    originalImage =
+      c.toDataURL(
+        "image/jpeg",
+        .92
+      );
 
-      p=yy*w+xx;
 
-      let gx=
-      -g[p-w-1]-2*g[p-1]-g[p+w-1]
-      +g[p-w+1]+2*g[p+1]+g[p+w+1];
+    /* CREATE SKETCH */
 
-      let gy=
-      -g[p-w-1]-2*g[p-w]-g[p-w+1]
-      +g[p+w-1]+2*g[p+w]+g[p+w+1];
+    const data =
+      q.getImageData(
+        0,
+        0,
+        c.width,
+        c.height
+      );
 
-      let z2=Math.min(255,Math.hypot(gx,gy));
+    const a =
+      data.data;
 
-      let k=p*4;
+    const w =
+      c.width;
 
-      out.data[k]=
-      out.data[k+1]=
-      out.data[k+2]=255-z2;
+    const h =
+      c.height;
 
-      out.data[k+3]=255;
+    const gray =
+      new Float32Array(
+        w*h
+      );
+
+    let p = 0;
+
+    for(
+      let i=0;
+      i<a.length;
+      i+=4
+    ){
+
+      gray[p++] =
+        .299*a[i] +
+        .587*a[i+1] +
+        .114*a[i+2];
+
     }
 
-    q.putImageData(out,0,0);
 
-    o.src=c.toDataURL();
-    o.hidden=false;
+    const out =
+      q.createImageData(
+        w,
+        h
+      );
+
+
+    for(
+      let yy=1;
+      yy<h-1;
+      yy++
+    ){
+
+      for(
+        let xx=1;
+        xx<w-1;
+        xx++
+      ){
+
+        p =
+          yy*w+xx;
+
+        const gx =
+          -gray[p-w-1]
+          -2*gray[p-1]
+          -gray[p+w-1]
+          +gray[p-w+1]
+          +2*gray[p+1]
+          +gray[p+w+1];
+
+        const gy =
+          -gray[p-w-1]
+          -2*gray[p-w]
+          -gray[p-w+1]
+          +gray[p+w-1]
+          +2*gray[p+w]
+          +gray[p+w+1];
+
+        const edge =
+          Math.min(
+            255,
+            Math.hypot(
+              gx,
+              gy
+            )
+          );
+
+        const k =
+          p*4;
+
+        const value =
+          255-edge;
+
+        out.data[k] =
+          value;
+
+        out.data[k+1] =
+          value;
+
+        out.data[k+2] =
+          value;
+
+        out.data[k+3] =
+          255;
+
+      }
+
+    }
+
+
+    q.putImageData(
+      out,
+      0,
+      0
+    );
+
+
+    sketchImage =
+      c.toDataURL();
+
+
+    /* DEFAULT SKETCH */
+
+    originalMode =
+      false;
+
+    o.src =
+      sketchImage;
+
+    o.hidden =
+      false;
+
+    x=0;
+    y=0;
+    s=1;
+
+    zm.value =
+      100;
 
     apply();
 
-    if(!stream)start.click();
 
-    msg.textContent=
-      '✏️ SKETCH OVERLAY LIVE — paper के साथ align करें';
+    msg.textContent =
+      "✏️ SKETCH MODE — paper पर tracing करें";
 
   };
 
-  im.src=URL.createObjectURL(f);
+  im.src =
+    URL.createObjectURL(file);
+
 };
 
+
+/* ==================================
+   ORIGINAL
+================================== */
+
+originalBtn.onclick =
+function(){
+
+  if(!originalImage){
+
+    alert(
+      "पहले Photo चुनें."
+    );
+
+    return;
+  }
+
+  originalMode =
+    true;
+
+  o.src =
+    originalImage;
+
+  apply();
+
+  msg.textContent =
+    "📷 ORIGINAL PHOTO — reference mode";
+
+};
+
+
+/* ==================================
+   SKETCH
+================================== */
+
+sketchBtn.onclick =
+function(){
+
+  if(!sketchImage){
+
+    alert(
+      "पहले Photo चुनें."
+    );
+
+    return;
+  }
+
+  originalMode =
+    false;
+
+  o.src =
+    sketchImage;
+
+  apply();
+
+  msg.textContent =
+    "✏️ SKETCH MODE — tracing करें";
+
+};
+
+
+/* ==================================
+   WEB SEARCH
+================================== */
+
+webSearchBtn.onclick =
+function(){
+
+  webQuery.focus();
+
+  msg.textContent =
+    "🔎 Photo का नाम लिखकर Search दबाएँ";
+
+};
+
+
+searchBtn.onclick =
+function(){
+
+  const q =
+    webQuery.value.trim();
+
+  if(!q){
+
+    alert(
+      "Photo का नाम लिखें."
+    );
+
+    webQuery.focus();
+
+    return;
+  }
+
+  const url =
+    "https://www.google.com/search?tbm=isch&q=" +
+    encodeURIComponent(q);
+
+  window.open(
+    url,
+    "_blank"
+  );
+
+};
+
+
+webQuery.addEventListener(
+  "keydown",
+  function(e){
+
+    if(e.key==="Enter"){
+
+      searchBtn.click();
+
+    }
+
+  }
+);
+
+
+/* ==================================
+   PHOTO CONTROLS
+================================== */
+
+op.oninput =
+apply;
+
+dk.oninput =
+apply;
+
+zm.oninput =
+function(){
+
+  s =
+    Number(zm.value)/100;
+
+  apply();
+
+};
+
+
+/* ==================================
+   DRAG PHOTO
+================================== */
+
+o.onpointerdown =
+function(e){
+
+  if(locked)
+    return;
+
+  drag =
+    true;
+
+  sx =
+    e.clientX;
+
+  sy =
+    e.clientY;
+
+  ox =
+    x;
+
+  oy =
+    y;
+
+  o.setPointerCapture(
+    e.pointerId
+  );
+
+};
+
+
+o.onpointermove =
+function(e){
+
+  if(
+    drag &&
+    !locked
+  ){
+
+    x =
+      ox +
+      e.clientX -
+      sx;
+
+    y =
+      oy +
+      e.clientY -
+      sy;
+
+    apply();
+
+  }
+
+};
+
+
+o.onpointerup =
+function(){
+
+  drag =
+    false;
+
+};
+
+
+/* ==================================
+   SPIROGRAPH CANVAS
+================================== */
 
 function resizeCanvas(){
 
-  canvas.width=window.innerWidth;
-  canvas.height=window.innerHeight;
+  canvas.width =
+    window.innerWidth;
+
+  canvas.height =
+    window.innerHeight;
+
+  sprayCanvas.width =
+    window.innerWidth;
+
+  sprayCanvas.height =
+    window.innerHeight;
 
   drawSpiro();
+
 }
 
-window.addEventListener('resize',resizeCanvas);
 
+window.addEventListener(
+  "resize",
+  resizeCanvas
+);
+
+
+/* ==================================
+   DRAW SPIROGRAPH
+================================== */
 
 function drawSpiro(){
 
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.clearRect(
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
 
-  if(!spiroOn)return;
+  if(!spiroOn)
+    return;
 
-  let size=Number(spSize.value);
+  const size =
+    Number(spSize.value);
 
-  let cx=canvas.width/2;
-  let cy=canvas.height*0.45;
+  const cx =
+    canvas.width/2;
 
-  let color=colour.value;
+  const cy =
+    canvas.height*.43;
 
-  ctx.strokeStyle=color;
-  ctx.lineWidth=Number(brush.value);
+  ctx.strokeStyle =
+    colour.value;
+
+  ctx.lineWidth =
+    Number(brush.value);
 
   ctx.beginPath();
 
-  let type=Number(pattern.value);
+  const type =
+    Number(pattern.value);
 
-  let points=type===1?720:
-             type===2?360:
-             type===3?240:1000;
+  const points =
+    type===1 ? 720 :
+    type===2 ? 360 :
+    type===3 ? 240 :
+    1000;
 
-  for(let i=0;i<=points;i++){
 
-    let t=i*Math.PI*2/points;
+  for(
+    let i=0;
+    i<=points;
+    i++
+  ){
+
+    const t =
+      i*Math.PI*2/points;
 
     let r;
 
+
     if(type===1){
 
-      r=size*(0.55+
-        0.35*Math.sin(7*t));
+      r =
+        size*
+        (
+          .55 +
+          .35*Math.sin(7*t)
+        );
 
-    }else if(type===2){
-
-      r=size*(0.35+
-        0.65*Math.abs(Math.cos(5*t)));
-
-    }else if(type===3){
-
-      r=size*0.65;
-
-    }else{
-
-      r=size*
-        (0.45+
-        0.20*Math.sin(8*t)+
-        0.12*Math.sin(13*t));
     }
 
-    let px=cx+r*Math.cos(t+angle);
-    let py=cy+r*Math.sin(t+angle);
+    else if(type===2){
+
+      r =
+        size*
+        (
+          .35 +
+          .65*
+          Math.abs(
+            Math.cos(5*t)
+          )
+        );
+
+    }
+
+    else if(type===3){
+
+      r =
+        size*.65;
+
+    }
+
+    else{
+
+      r =
+        size*
+        (
+          .45 +
+          .20*Math.sin(8*t) +
+          .12*Math.sin(13*t)
+        );
+
+    }
+
+
+    const px =
+      cx +
+      r*Math.cos(
+        t+angle
+      );
+
+    const py =
+      cy +
+      r*Math.sin(
+        t+angle
+      );
+
 
     if(i===0)
-      ctx.moveTo(px,py);
+
+      ctx.moveTo(
+        px,
+        py
+      );
+
     else
-      ctx.lineTo(px,py);
+
+      ctx.lineTo(
+        px,
+        py
+      );
+
   }
+
 
   ctx.stroke();
 
-  angle+=Number(speed.value)*0.0005;
+  angle +=
+    Number(speed.value)*.0005;
 
-  if(spiroOn)
-    requestAnimationFrame(drawSpiro);
+
+  if(spiroOn){
+
+    requestAnimationFrame(
+      drawSpiro
+    );
+
+  }
+
 }
 
 
-spiroBtn.onclick=()=>{
+/* ==================================
+   SPIROGRAPH BUTTON
+================================== */
 
-  spiroOn=!spiroOn;
+spiroBtn.onclick =
+function(){
 
-  spiroControls.hidden=!spiroOn;
+  spiroOn =
+    !spiroOn;
 
-  spiroBtn.textContent=
-    spiroOn?'⭕ Hide Spirograph':'⭕ Spirograph';
+  spiroControls
+    .classList
+    .toggle(
+      "hidden",
+      !spiroOn
+    );
 
-  msg.textContent=
-    spiroOn?
-    '⭕ Spirograph ON — paper पर pattern align करें':
-    'Spirograph OFF';
 
-  if(spiroOn)
+  if(spiroOn){
+
+    msg.textContent =
+      "⭕ SPIROGRAPH ON";
+
     drawSpiro();
-  else
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-};
 
+  }else{
 
-pattern.oninput=drawSpiro;
-spSize.oninput=drawSpiro;
-brush.oninput=drawSpiro;
-colour.oninput=drawSpiro;
-speed.oninput=drawSpiro;
+    msg.textContent =
+      "Spirograph OFF";
 
+    ctx.clearRect(
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
 
-op.oninput=apply;
-dk.oninput=apply;
-
-zm.oninput=()=>{
-  s=zm.value/100;
-  apply();
-};
-
-
-o.onpointerdown=e=>{
-
-  if(locked)return;
-
-  drag=true;
-
-  sx=e.clientX;
-  sy=e.clientY;
-
-  ox=x;
-  oy=y;
-
-  o.setPointerCapture(e.pointerId);
-};
-
-
-o.onpointermove=e=>{
-
-  if(drag&&!locked){
-
-    x=ox+e.clientX-sx;
-    y=oy+e.clientY-sy;
-
-    apply();
   }
-};
 
-o.onpointerup=()=>drag=false;
-
-
-lock.onclick=()=>{
-
-  locked=!locked;
-
-  lock.textContent=
-    locked?'🔒 Locked':'🔓 Lock';
-
-  msg.textContent=
-    locked?
-    '🔒 LOCKED — अब paper पर trace करें':
-    'Overlay unlocked';
 };
 
 
-reset.onclick=()=>{
+pattern.oninput =
+drawSpiro;
+
+spSize.oninput =
+drawSpiro;
+
+brush.oninput =
+drawSpiro;
+
+speed.oninput =
+drawSpiro;
+
+colour.oninput =
+drawSpiro;
+
+
+/* ==================================
+   COLOUR SPRAY
+================================== */
+
+sprayBtn.onclick =
+function(){
+
+  sprayOn =
+    !sprayOn;
+
+  sprayControls
+    .classList
+    .toggle(
+      "hidden",
+      !sprayOn
+    );
+
+
+  if(sprayOn){
+
+    msg.textContent =
+      "🎨 COLOUR SPRAY ON — paper पर tap करें";
+
+  }else{
+
+    msg.textContent =
+      "Colour Spray OFF";
+
+  }
+
+};
+
+
+/* ==================================
+   SPRAY FUNCTION
+================================== */
+
+function makeSpray(
+  cx,
+  cy
+){
+
+  const size =
+    Number(
+      spraySize.value
+    );
+
+  const density =
+    Number(
+      sprayDensity.value
+    );
+
+
+  sprayCtx.fillStyle =
+    sprayColour.value;
+
+
+  const count =
+    Math.max(
+      5,
+      Math.round(
+        density*1.5
+      )
+    );
+
+
+  for(
+    let i=0;
+    i<count;
+    i++
+  ){
+
+    const angle =
+      Math.random()*
+      Math.PI*2;
+
+    const radius =
+      Math.sqrt(
+        Math.random()
+      )*
+      size;
+
+    const px =
+      cx +
+      Math.cos(angle)*
+      radius;
+
+    const py =
+      cy +
+      Math.sin(angle)*
+      radius;
+
+
+    const dot =
+      Math.random()*2.5+1;
+
+
+    sprayCtx.globalAlpha =
+      Math.random()*.55+.25;
+
+
+    sprayCtx.beginPath();
+
+    sprayCtx.arc(
+      px,
+      py,
+      dot,
+      0,
+      Math.PI*2
+    );
+
+    sprayCtx.fill();
+
+  }
+
+
+  sprayCtx.globalAlpha =
+    1;
+
+}
+
+
+/* ==================================
+   SPRAY TOUCH / CLICK
+================================== */
+
+function sprayAt(
+  x,
+  y
+){
+
+  if(
+    !sprayOn ||
+    locked
+  )
+    return;
+
+  makeSpray(
+    x,
+    y
+  );
+
+}
+
+
+sprayCanvas.addEventListener(
+  "pointerdown",
+  function(e){
+
+    sprayAt(
+      e.clientX,
+      e.clientY
+    );
+
+  }
+);
+
+
+/* ==================================
+   CLEAR SPRAY
+================================== */
+
+clearSpray.onclick =
+function(){
+
+  sprayCtx.clearRect(
+    0,
+    0,
+    sprayCanvas.width,
+    sprayCanvas.height
+  );
+
+};
+
+
+/* ==================================
+   LOCK
+================================== */
+
+lock.onclick =
+function(){
+
+  locked =
+    !locked;
+
+  lock.textContent =
+    locked ?
+    "🔒 Locked" :
+    "🔓 Lock";
+
+
+  msg.textContent =
+    locked ?
+    "🔒 LOCKED — अब paper पर trace करें" :
+    "Overlay unlocked";
+
+};
+
+
+/* ==================================
+   RESET
+================================== */
+
+reset.onclick =
+function(){
 
   x=0;
   y=0;
   s=1;
 
-  zm.value=100;
-  op.value=65;
-  dk.value=150;
+  zm.value =
+    100;
 
-  angle=0;
+  op.value =
+    65;
+
+  dk.value =
+    150;
+
+  angle =
+    0;
+
+  originalMode =
+    false;
+
+  spiroOn =
+    false;
+
+  sprayOn =
+    false;
+
+
+  spiroControls
+    .classList
+    .add("hidden");
+
+  sprayControls
+    .classList
+    .add("hidden");
+
+
+  ctx.clearRect(
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+  sprayCtx.clearRect(
+    0,
+    0,
+    sprayCanvas.width,
+    sprayCanvas.height
+  );
+
+
+  if(sketchImage){
+
+    o.src =
+      sketchImage;
+
+    o.hidden =
+      false;
+
+  }
+
 
   apply();
-  drawSpiro();
+
+  msg.textContent =
+    "↺ Reset complete";
+
 };
 
+
+/* ==================================
+   START
+================================== */
 
 resizeCanvas();
 
